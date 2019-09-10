@@ -31,18 +31,26 @@ for sbj_id in sbj_list:
             rest_str.append('-mul %s')
 print('...%s EPI masks are being averaged' %(str(len(mask_file_list))))
 op_string_rest = " ".join((rest_str))
-        
+
+os.chdir(outdir)
+
 maths = MultiImageMaths()
 maths.inputs.in_file       = mask_file_list[0]
 maths.inputs.op_string     = op_string_rest
 maths.inputs.operand_files = mask_file_list[1:]
-maths.inputs.out_file      = os.path.join(outdir, 'rest_intra_mask.nii.gz')
+maths.inputs.out_file      = 'rest_intra_mask.nii.gz'
 maths.run()
 
 maths = MultiImageMaths()
-maths.inputs.in_file       = os.path.join(outdir, 'rest_intra_mask.nii.gz')
+maths.inputs.in_file       = 'rest_intra_mask.nii.gz'
 maths.inputs.op_string     = '-mul %s'
-maths.inputs.operand_files = os.path.join(outdir, 'gm_prob_merged_mean_mask_090.nii.gz')
-maths.inputs.out_file      = os.path.join(outdir, 'gm_90_rest_mask.nii.gz')
+maths.inputs.operand_files = 'mni_icbm152_t1_tal_nlin_asym_09c_2mm_mask.nii.gz'
+maths.inputs.out_file      = 'rest_intra_mask_mni.nii.gz'
 maths.run()
 
+maths = MultiImageMaths()
+maths.inputs.in_file       = 'rest_intra_mask_mni.nii.gz'
+maths.inputs.op_string     = '-mul %s'
+maths.inputs.operand_files = 'gm_prob_merged_mean_mask_060.nii.gz'
+maths.inputs.out_file      = 'rest_intra_mask_mni_gm_060.nii.gz'
+maths.run()

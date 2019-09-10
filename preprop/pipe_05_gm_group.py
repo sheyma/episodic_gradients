@@ -49,10 +49,10 @@ tmean.inputs.out_file    = gm_merged_ave
 tmean.run()
 
 # binarize the group level gray matter map
-gm_mask = gm_merged_ave[:-7] + '_mask_065.nii.gz'
+gm_mask = gm_merged_ave[:-7] + '_mask_060.nii.gz'
 
 binarize = MathsCommand()
-binarize.inputs.args     = '-thr  0.65 -bin'
+binarize.inputs.args     = '-thr  0.60 -bin'
 binarize.inputs.in_file  = gm_merged_ave
 binarize.inputs.out_file = gm_mask
 binarize.run()
