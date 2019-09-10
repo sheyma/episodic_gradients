@@ -21,6 +21,7 @@ bandpass.inputs.highpass   = 0.01
 bandpass.inputs.lowpass    = 0.1
 bandpass.inputs.mask       = img_mask
 bandpass.inputs.outputtype = 'NIFTI_GZ'
+bandpass.inputs.no_detrend = True
 bandpass.inputs.out_file   = img_filt
 bandpass.run()
 
