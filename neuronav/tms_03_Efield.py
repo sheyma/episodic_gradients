@@ -44,25 +44,7 @@ pos.didt     = tint * 1e6            # TMS intensity (A/s)
 pos.pos_ydir = ([1,0,0])             # coil towards right
 pos.calc_matsimnibs(mesh)            # scalp projection
 pos.pos_ydir = (pos.matsimnibs[0:3,3] + [1,0,0]).tolist()
-A = pos.centre
-B = pos.pos_ydir  #### params needed !!!
-
-################# HERE WE GO ....
-k = sim_struct.SESSION()
-
-k.fnamehead = meshfile
-k.subpath   = m2mfile
-k.pathfem   = outfile
-
-mylist = k.add_tmslist()
-mylist.fnamecoil       =  coilnifti
-mylist.anisotropy_type = 'scalar'
-
-POS = mylist.add_position()
-POS.centre   = A	                 # entry coordinates
-POS.distance = 1.                    # coil distance (mm)
-POS.didt     = tint * 1e6            # TMS intensity (A/s)
-POS.pos_ydir = B
+pos.matsimnibs = None                # matsimnibs is not recomputed if already there.
 
 k.open_in_gmsh = False
 k.map_to_vol   = True
