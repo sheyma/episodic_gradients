@@ -33,7 +33,9 @@ plt.ylabel('Intensity [A/$\mu$ s] ')
 #plt.show()
 
 # GENERATE NEW DATA FRAME
-rColumns = ['subject_id', 'TMS_est', 'RTMS_int', 'mpfc_direc']
+rColumns = ['subject_id', 'TMS_est', 'RTMS_int',
+            'mpfc_direc', 'vertex_direc']
+
 df       = pd.DataFrame(index=myindex,
                         columns=rColumns)
 
@@ -51,31 +53,47 @@ for idx in myindex:
     if db.loc[idx]['Stimulation_03'] == 'mPFC':
         df.loc[idx]['mpfc_direc'] = db.loc[idx]['Handle_Dir.3']
 
+    # get vertex stimulation coil direction
+    if db.loc[idx]['Stimulation_01'] == 'vertex':
+        df.loc[idx]['vertex_direc'] = db.loc[idx]['Handle_Dir.1']
+    if db.loc[idx]['Stimulation_02'] == 'vertex':
+        df.loc[idx]['vertex_direc'] = db.loc[idx]['Handle_Dir.2']
+    if db.loc[idx]['Stimulation_03'] == 'vertex':
+        df.loc[idx]['vertex_direc'] = db.loc[idx]['Handle_Dir.3']
+
     # save...
     if idx < 10:
         df.loc[idx]['subject_id'] = 'sub-0' + str(int(idx))
 
         if os.path.exists(outpath + 'sub-0' + str(int(idx)))==True:
-            #print('sub-0' + str(int(idx)), np.array([df.loc[idx]['TMS_est']]))
+
             np.savetxt(outpath + 'sub-0' + str(int(idx)) +
                        '/tms_int_sub-0' + str(int(idx)) + '.txt',
                        np.array([df.loc[idx]['TMS_est']]), fmt='%2.2f')
 
             np.savetxt(outpath + 'sub-0' + str(int(idx)) +
-                       '/mpfc_dir_sub-0' + str(int(idx)) + '.txt',
+                       '/coil_direction_mPFC_sub-0' + str(int(idx)) + '.txt',
                        np.array([df.loc[idx]['mpfc_direc']]), fmt='%s')
+
+            np.savetxt(outpath + 'sub-0' + str(int(idx)) +
+                       '/coil_direction_vertex_sub-0' + str(int(idx)) + '.txt',
+                       np.array([df.loc[idx]['vertex_direc']]), fmt='%s')
 
     else:
         df.loc[idx]['subject_id'] = 'sub-' + str(int(idx))
 
         if os.path.exists(outpath + 'sub-' + str(int(idx)))==True:
-            #print('sub-' + str(int(idx)), np.array([df.loc[idx]['TMS_est']]))
+
             np.savetxt(outpath + 'sub-' + str(int(idx)) +
                         '/tms_int_sub-' + str(int(idx)) + '.txt',
                         np.array([df.loc[idx]['TMS_est']]), fmt='%2.2f')
 
             np.savetxt(outpath + 'sub-' + str(int(idx)) +
-                       '/mpfc_dir_sub-' + str(int(idx)) + '.txt',
+                       '/coil_direction_mPFC_sub-' + str(int(idx)) + '.txt',
                        np.array([df.loc[idx]['mpfc_direc']]), fmt='%s')
 
-#df.to_excel(file_out)
+            np.savetxt(outpath + 'sub-' + str(int(idx)) +
+                       '/coil_direction_vertex_sub-' + str(int(idx)) + '.txt',
+                       np.array([df.loc[idx]['vertex_direc']]), fmt='%s')
+
+df.to_excel(file_out)
