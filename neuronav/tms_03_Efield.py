@@ -15,10 +15,10 @@ coilnifti   = '/data/pt_neuam005/simnibs_TMS/MagVenture_MC_B70.nii.gz'
 
 meshfile  = os.path.join(sub_dir, sub,  sub + '.msh')
 m2mfile   = os.path.join(sub_dir, sub, 'm2m_' + sub)
-outfile   = os.path.join(sub_dir, sub, 'simnibs_simulation')
+outfile   = os.path.join(sub_dir, sub, 'simnibs_simulation_mPFC')
 intFile   = os.path.join(sub_dir, sub, 'tms_int_' + sub + '.txt' )
-coordFile = os.path.join(sub_dir, sub, 'coordinates_' + sub + '.txt' )
-handlFile = os.path.join(sub_dir, sub, 'mpfc_dir_' + sub + '.txt' )
+coordFile = os.path.join(sub_dir, sub, 'coordinates_mPFC_' + sub + '.txt' )
+handlFile = os.path.join(sub_dir, sub, 'coil_direction_mPFC_' + sub + '.txt' )
 
 tint  = np.loadtxt(intFile).astype(float)
 coord = np.loadtxt(coordFile).astype(float)[1:].tolist()[0]
