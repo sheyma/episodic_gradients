@@ -1,14 +1,13 @@
-import os, sys, glob
+import os, sys
 from nilearn import masking
 import numpy as np
-from scipy import spatial
 import numexpr as ne
 from mapalign import embed
 import argparse
 
 subj_file = 'x_preprocessed.nii.gz'
 img_mask  = '/data/pt_neuam005/sheyma/grouplevel/rest_intra_mask_mni_gm_060.nii.gz'
-out_prfx  = '/data/pt_neuam005/sheyma/test_thr60_scipy/x_preprocessed'
+out_prfx  = '/data/pt_neuam005/sheyma/out/x_preprocessed'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l','--in', dest='sbj_file')
@@ -64,11 +63,9 @@ for i in range(N):
 indiv_matrix[indiv_matrix < 0] = 0
 
 #### Step 3 #### compute the affinity matrix
-print('calculating affinity matrix with scipy...')
-indiv_matrix = spatial.distance.pdist(indiv_matrix, metric = 'cosine')
-indiv_matrix = spatial.distance.squareform(indiv_matrix)
-indiv_matrix = 1.0 - indiv_matrix
-
+print('calculating affinity matrix with numpy linalg ...')
+NORM         = (1.0 / np.linalg.norm(indiv_matrix, axis=0).reshape([N,1]))
+indiv_matrix = np.dot(indiv_matrix,indiv_matrix) * NORM * NORM.T
 print('affinity shape ', np.shape(indiv_matrix))
 
 #### Step 4 #### get gradients
