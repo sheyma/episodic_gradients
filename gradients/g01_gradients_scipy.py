@@ -2,12 +2,12 @@ import os, sys, glob
 from nilearn import masking
 import numpy as np
 from scipy import spatial
-import h5py as h5
+import numexpr as ne
 from mapalign import embed
 import argparse
 
 subj_file = 'x_preprocessed.nii.gz'
-img_mask  = 'rest_intra_mask_mni_gm_thr_YY.nii.gz'
+img_mask  = '/data/pt_neuam005/sheyma/grouplevel/rest_intra_mask_mni_gm_060.nii.gz'
 out_prfx  = '/data/pt_neuam005/sheyma/test_thr60_scipy/x_preprocessed'
 
 parser = argparse.ArgumentParser()
@@ -42,9 +42,14 @@ if voxel_zeros > 0:
 
 print('calculating correlation matrix...')
 indiv_matrix = np.corrcoef(t_series)
+print(img_rest, indiv_matrix.shape)
 
-print(img_rest)
-print(indiv_matrix.shape)
+def fisher_z2r(Z):
+    X = ne.evaluate('exp(2*Z)')
+    return ne.evaluate('(X - 1) / (X + 1)')
+
+print("Fisher z2r transform...")
+indiv_matrix = fisher_z2r(indiv_matrix)
 
 #### Step 2 #### threhold at 90th percentile
 print('thresholding each row at its 90th percentile...')
