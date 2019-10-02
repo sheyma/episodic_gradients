@@ -5,6 +5,7 @@ import h5py
 import numexpr as ne
 import nibabel as nb
 import argparse
+from mapalign import embed
 
 #img_mask  = '/data/pt_neuam005/sheyma/grouplevel/rest_intra_mask_mni_gm_060.nii.gz'
 #subj_list = ['x_preprocessed.nii.gz', 'y_preprocessed.nii.gz', ...]
