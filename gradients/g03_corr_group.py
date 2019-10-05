@@ -1,10 +1,10 @@
 import os, sys, glob
 from nilearn import masking
 import numpy as np
-import h5py
 import numexpr as ne
 import nibabel as nb
 import argparse
+import gc
 from mapalign import embed
 
 #img_mask  = '/data/pt_neuam005/sheyma/grouplevel/rest_intra_mask_mni_gm_060.nii.gz'
@@ -49,13 +49,16 @@ for img_rest in imlist:
 
     # sum across corr matrices
     if i == 0:
-        SUM = corr_matrix
+        indiv_matrix = corr_matrix
     else:
-        SUM = ne.evaluate('SUM + corr_matrix')
+        indiv_matrix = ne.evaluate('indiv_matrix + corr_matrix')
     i += 1
 
+del corr_matrix
+gc.collect()
+
 # get the mean
-indiv_matrix = ne.evaluate('SUM / N')
+indiv_matrix = ne.evaluate('indiv_matrix / N')
 print('average matrix: ', indiv_matrix.shape, indiv_matrix.min(), indiv_matrix.max())
 
 indiv_matrix[np.where(indiv_matrix < -0.99)] = -0.99
