@@ -1,64 +1,101 @@
-import os
-import argparse
+import os, sys, glob
+from nilearn import masking
 import numpy as np
+import numexpr as ne
 import nibabel as nb
-from mapalign import align
+import argparse
+import gc
+from mapalign import embed
 
-# im_list = ['sub-XX_ses-01_task-future_dense_emb.npy', ...]
-# gm_mask = 'rest_intra_mask_mni_gm_thr_YY.nii.gz'
-# mni_tmp = 'mni_icbm152_t1_tal_nlin_asym_09c_2mm.nii.gz'
-# out_pat = '/data/pt_neuam005/sheyma/gradientsYY_individual/'
+#img_mask  = '/data/pt_neuam005/sheyma/grouplevel/rest_intra_mask_mni_gm_060.nii.gz'
+#subj_list = ['x_preprocessed.nii.gz', 'y_preprocessed.nii.gz', ...]
+#out_file  = '/data/pt_neuam005/sheyma/gradients_group/ave_ses-01_past'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-l','--list', dest='file_list',
-                    nargs='+', help='<Required> Set flag', required=True)
+parser.add_argument('-l','--list', dest='subject_list',
+		    nargs='+', help='<Required> Set flag', required=True)
 parser.add_argument('-m', '--mask', dest='mask_name')
-parser.add_argument('-t', '--mnit', dest='mni_name')
-parser.add_argument('-o', '--out', dest='out_path')
+parser.add_argument('-o', '--out', dest='out_name', type=str)
 
-results = parser.parse_args()
-im_list = results.file_list
-gm_mask = results.mask_name
-mni_tmp = results.mni_name
-out_pat = results.out_path
+results  = parser.parse_args()
+img_mask = results.mask_name
+imlist   = results.subject_list
+out_file = results.out_name
 
-# load each embedding as numpy array and concatenate all 
-alist = []
-for im in im_list:
-    im_load = np.load(im)
-    alist.append(im_load.T)
+def mask_check(rest, mask):
+    """
+    rest: 4D nifti-filename
+    mask: 3D nifti-filename
+    """
+    matrix = masking.apply_mask(rest, mask)
+    matrix = matrix.T
+    cnt_zeros = 0 
+    for i in range(0, matrix.shape[0]):
+        if np.count_nonzero(matrix[i, :]) == 0:
+            cnt_zeros += 1
+    return cnt_zeros, matrix
 
-# stack embedding arrays 
-embeddings = list(np.dstack(alist).T)
-print("list of all embeddings: ", np.shape(embeddings)) #### (216, 73485, 10)
+i 	 = 0
+N 	 = len(imlist)
 
-# run the alignment
-realigned, xfsm = align.iterative_alignment(embeddings, n_iters=10)
+for img_rest in imlist:
+  
+    [voxel_zeros, t_series] = mask_check(img_rest, img_mask)
 
-# upload mni template 
-mni_affine = nb.load(mni_tmp).get_affine()
+    # get correlation coefficients and Fisher r2z transform
+    corr_matrix = np.corrcoef(t_series)
+    print(img_rest)
+    print(corr_matrix.shape)
 
-# get voxel indices (x,y,z) of gray matter mask = 1
-mask_array = nb.load(gm_mask).get_data()
-voxel_x = np.where(mask_array==1)[0]
-voxel_y = np.where(mask_array==1)[1]
-voxel_z = np.where(mask_array==1)[2]
-print("%s voxels are in GM..." % len(voxel_x))
+    # sum across corr matrices
+    if i == 0:
+        indiv_matrix = corr_matrix
+    else:
+        indiv_matrix = ne.evaluate('indiv_matrix + corr_matrix')
+    i += 1
 
-# project aligned arrays back to the mni template space and save as nifti
-for im, realign in zip(im_list, realigned):
+del corr_matrix
+gc.collect()
 
-    print(im, np.shape(realign))
+# get the mean
+indiv_matrix = ne.evaluate('indiv_matrix / N')
+print('average matrix: ', indiv_matrix.shape, indiv_matrix.min(), indiv_matrix.max())
 
-    for i in range(0, 10):
+indiv_matrix[np.where(indiv_matrix < -0.99)] = -0.99
+indiv_matrix[np.where(indiv_matrix > 0.99)] = 0.99
 
-        aname = 'grad_alig_'+str(i+1)+'_'+os.path.basename(im)[:-4]+'.nii.gz'
-        fname = os.path.join(out_pat, aname)
-        print(fname)
+print("Fisher r2z transform...")
+indiv_matrix = np.arctanh(indiv_matrix)
+print('fisher matrix: ', indiv_matrix.shape, indiv_matrix.min(), indiv_matrix.max())
 
-        tmp = np.zeros(nb.load(mni_tmp).get_data().shape)
-        tmp[voxel_x, voxel_y, voxel_z] = realign[:,i]
-        tmp_img = nb.Nifti1Image(tmp, mni_affine)
+#### Step 2 #### threshold at 90th percentile
+print('thresholding each row at its 90th percentile...')
+perc = np.array([np.percentile(x, 90) for x in indiv_matrix])
+N    = indiv_matrix.shape[0]
 
-        nb.save(tmp_img, fname)
+for i in range(N):
+    indiv_matrix[i, indiv_matrix[i,:] < perc[i]] = 0
 
+#neg_values = np.array([sum(indiv_matrix[i,:] < 0) for i in range(N)])
+#print('Negative values occur in %d rows' % sum(neg_values > 0))
+indiv_matrix[indiv_matrix < 0] = 0
+
+#### Step 3 #### compute the affinity matrix
+print('calculating affinity matrix with numpy linalg ...')
+NORM         = (1.0 / np.linalg.norm(indiv_matrix, axis=0).reshape([N,1]))
+indiv_matrix = np.dot(indiv_matrix,indiv_matrix) * NORM * NORM.T
+print('affinity shape ', np.shape(indiv_matrix))
+
+#### Step 4 #### get gradients
+print('computing gradients...')
+# NOTE this is fast but uses a lot of memory. So if we would save the matrix
+# here, then we could run everything above more parallel above all subjects
+emb, res = embed.compute_diffusion_map(indiv_matrix, alpha = 0.5,
+                                       n_components = 10,
+                                       return_result=True)
+
+out_name_emb = out_file + '_dense_emb.npy'
+out_name_res = out_file + '_dense_res.npy'
+print(out_name_emb)
+np.save(out_name_emb, emb)
+np.save(out_name_res, res['lambdas'])
