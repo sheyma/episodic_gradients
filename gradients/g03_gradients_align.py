@@ -3,24 +3,28 @@ import argparse
 import numpy as np
 import nibabel as nb
 from mapalign import align
+from brainspace.gradient import alignment
 
-# im_list = ['sub-XX_ses-01_task-future_dense_emb.npy', ...]
-# gm_mask = 'rest_intra_mask_mni_gm_thr_YY.nii.gz'
-# mni_tmp = 'mni_icbm152_t1_tal_nlin_asym_09c_2mm.nii.gz'
-# out_pat = '/data/pt_neuam005/sheyma/gradientsYY_individual/'
+# list = ['sub-XX_ses-01_task-future_dense_emb.npy', ...]
+# mask = 'rest_intra_mask_mni_gm_thr_YY.nii.gz'
+# mnit = 'mni_icbm152_t1_tal_nlin_asym_09c_2mm.nii.gz' 
+# out  = '/data/pt_neuam005/sheyma/aligned_YY/'
+# targ = 'ave_group_gradients.npy'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-l','--list', dest='file_list',
                     nargs='+', help='<Required> Set flag', required=True)
 parser.add_argument('-m', '--mask', dest='mask_name')
-parser.add_argument('-t', '--mnit', dest='mni_name')
+parser.add_argument('-mni', '--mnit', dest='mni_name')
 parser.add_argument('-o', '--out', dest='out_path')
+parser.add_argument('-t', '--target', dest='target')
 
 results = parser.parse_args()
 im_list = results.file_list
 gm_mask = results.mask_name
 mni_tmp = results.mni_name
 out_pat = results.out_path
+targ_fi = results.target
 
 # load each embedding as numpy array and concatenate all 
 alist = []
@@ -30,10 +34,19 @@ for im in im_list:
 
 # stack embedding arrays 
 embeddings = list(np.dstack(alist).T)
-print("list of all embeddings: ", np.shape(embeddings)) #### (216, 73485, 10)
+print("list of all embeddings: ", np.shape(embeddings)) #### (210, 73472, 10)
+
+# get the target embedding
+target = np.load(targ_fi)
+print("shape of target embeddings: ", np.shape(target)) ### (73472, 10)
 
 # run the alignment
-realigned, xfsm = align.iterative_alignment(embeddings, n_iters=10)
+#realigned, xfsm = align.iterative_alignment(embeddings, n_iters=10) >>> SATRA
+
+realigned, mean_dataset = alignment.procrustes_alignment(data = embeddings, 
+  		                       			 reference = target, 
+			       		   		 n_iter=10) # >>> brainspace
+print("shape after realignment: ", np.shape(realigned)) #### (210, 73472, 10)
 
 # upload mni template 
 mni_affine = nb.load(mni_tmp).get_affine()
@@ -48,17 +61,15 @@ print("%s voxels are in GM..." % len(voxel_x))
 # project aligned arrays back to the mni template space and save as nifti
 for im, realign in zip(im_list, realigned):
 
-    print(im, np.shape(realign))
+	for i in range(0, 10):
 
-    for i in range(0, 10):
+		aname = 'align_'+str(i+1)+'_'+os.path.basename(im)[:-4]+'.nii.gz'
+		fname = os.path.join(out_pat, aname)
+		print(im, i, np.shape(realign), fname)
 
-        aname = 'grad_alig_'+str(i+1)+'_'+os.path.basename(im)[:-4]+'.nii.gz'
-        fname = os.path.join(out_pat, aname)
-        print(fname)
+		tmp = np.zeros(nb.load(mni_tmp).get_data().shape)
+		tmp[voxel_x, voxel_y, voxel_z] = realign[:,i]
+		tmp_img = nb.Nifti1Image(tmp, mni_affine)
 
-        tmp = np.zeros(nb.load(mni_tmp).get_data().shape)
-        tmp[voxel_x, voxel_y, voxel_z] = realign[:,i]
-        tmp_img = nb.Nifti1Image(tmp, mni_affine)
-
-        nb.save(tmp_img, fname)
+		nb.save(tmp_img, fname)
 
