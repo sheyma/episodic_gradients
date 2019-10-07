@@ -7,7 +7,7 @@ from nipype.interfaces.fsl.maths import MathsCommand
 ### and finally binarizes to get a GM mask
 
 #datadir      = '/data/pt_neuam005/FSTIM_1_Think_preprocessed/fmriprep'
-#subj_list_fi = '/data/pt_neuam005/FSTIM_1_Think_preprocessed/subject_list.txt'
+#subj_list_fi = '/data/pt_neuam005/FSTIM_1_Think_preprocessed/subject_list_tms.txt'
 #outdir       = '/data/pt_neuam005/sheyma/grouplevel/'
 
 datadir      = sys.argv[1]
@@ -35,7 +35,7 @@ merger.inputs.in_files    = gm_file_list
 merger.inputs.dimension   = 't'
 merger.inputs.output_type = 'NIFTI_GZ'
 merger.inputs.merged_file = gm_merged
-merger.run()
+#merger.run()
 
 # get the average of the merged map
 gm_merged_ave = gm_merged[:-7] + '_mean.nii.gz'
@@ -46,7 +46,7 @@ tmean.inputs.in_file     = gm_merged
 tmean.inputs.dimension   = 'T'
 tmean.inputs.output_type = 'NIFTI_GZ'
 tmean.inputs.out_file    = gm_merged_ave
-tmean.run()
+#tmean.run()
 
 # binarize the group level gray matter map
 gm_mask = gm_merged_ave[:-7] + '_mask_060.nii.gz'
