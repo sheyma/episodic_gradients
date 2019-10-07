@@ -5,7 +5,7 @@ from nipype.interfaces.fsl import MultiImageMaths
 ### multiply GM mask with that binary mask
 
 #datadir      = '/data/pt_neuam005/FSTIM_1_Think_preprocessed/fmriprep'
-#subj_list_fi = '/data/pt_neuam005/FSTIM_1_Think_preprocessed/subject_list.txt'
+#subj_list_fi = '/data/pt_neuam005/FSTIM_1_Think_preprocessed/subject_list_tms.txt'
 #outdir       = '/data/pt_neuam005/sheyma/grouplevel/'
 
 datadir      = sys.argv[1]
