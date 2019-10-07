@@ -12,7 +12,7 @@ from brainspace.gradient import alignment
 # targ = 'ave_group_gradients.npy'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-l','--list', dest='file_list',
+parser.add_argument('-l', '--list', dest='file_list',
                     nargs='+', help='<Required> Set flag', required=True)
 parser.add_argument('-m', '--mask', dest='mask_name')
 parser.add_argument('-mni', '--mnit', dest='mni_name')
@@ -34,43 +34,41 @@ for im in im_list:
 
 # stack embedding arrays 
 embeddings = list(np.dstack(alist).T)
-print("list of all embeddings: ", np.shape(embeddings)) #### (1, 73472, 10)
+print("list of all embeddings: ", np.shape(embeddings))  #### (1, 73472, 10)
 
 # get the target embedding
 target = np.load(targ_fi)
-print("shape of target embeddings: ", np.shape(target)) ### (73472, 10)
+print("shape of target embeddings: ", np.shape(target))  ### (73472, 10)
 
 # run the alignment
-#realigned, xfsm = align.iterative_alignment(embeddings, n_iters=10) >>> SATRA
+# realigned, xfsm = align.iterative_alignment(embeddings, n_iters=10) >>> SATRA
 
-realigned, mean_dataset = alignment.procrustes_alignment(data = embeddings, 
-														 reference = target,
-														 n_iter=10) # >>> brainspace
+realigned, mean_dataset = alignment.procrustes_alignment(data=embeddings,
+                                                         reference=target,
+                                                         n_iter=10)  # >>> brainspace
 
-print("shape after realignment: ", np.shape(realigned)) #### (1, 73472, 10)
+print("shape after realignment: ", np.shape(realigned))  #### (1, 73472, 10)
 
 # upload mni template 
 mni_affine = nb.load(mni_tmp).get_affine()
 
 # get voxel indices (x,y,z) of gray matter mask = 1
 mask_array = nb.load(gm_mask).get_data()
-voxel_x = np.where(mask_array==1)[0]
-voxel_y = np.where(mask_array==1)[1]
-voxel_z = np.where(mask_array==1)[2]
+voxel_x = np.where(mask_array == 1)[0]
+voxel_y = np.where(mask_array == 1)[1]
+voxel_z = np.where(mask_array == 1)[2]
 print("%s voxels are in GM..." % len(voxel_x))
 
 # project aligned arrays back to the mni template space and save as nifti
 for im, realign in zip(im_list, realigned):
 
-	for i in range(0, 10):
+    for i in range(0, 10):
+        aname = 'align_' + str(i + 1) + '_' + os.path.basename(im)[:-4] + '.nii.gz'
+        fname = os.path.join(out_pat, aname)
+        print(im, i, np.shape(realign), fname)
 
-		aname = 'align_'+str(i+1)+'_'+os.path.basename(im)[:-4]+'.nii.gz'
-		fname = os.path.join(out_pat, aname)
-		print(im, i, np.shape(realign), fname)
+        tmp = np.zeros(nb.load(mni_tmp).get_data().shape)
+        tmp[voxel_x, voxel_y, voxel_z] = realign[:, i]
+        tmp_img = nb.Nifti1Image(tmp, mni_affine)
 
-		tmp = np.zeros(nb.load(mni_tmp).get_data().shape)
-		tmp[voxel_x, voxel_y, voxel_z] = realign[:,i]
-		tmp_img = nb.Nifti1Image(tmp, mni_affine)
-
-		nb.save(tmp_img, fname)
-
+        nb.save(tmp_img, fname)
