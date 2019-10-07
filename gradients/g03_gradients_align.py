@@ -34,7 +34,7 @@ for im in im_list:
 
 # stack embedding arrays 
 embeddings = list(np.dstack(alist).T)
-print("list of all embeddings: ", np.shape(embeddings)) #### (210, 73472, 10)
+print("list of all embeddings: ", np.shape(embeddings)) #### (1, 73472, 10)
 
 # get the target embedding
 target = np.load(targ_fi)
@@ -44,9 +44,10 @@ print("shape of target embeddings: ", np.shape(target)) ### (73472, 10)
 #realigned, xfsm = align.iterative_alignment(embeddings, n_iters=10) >>> SATRA
 
 realigned, mean_dataset = alignment.procrustes_alignment(data = embeddings, 
-  		                       			 reference = target, 
-			       		   		 n_iter=10) # >>> brainspace
-print("shape after realignment: ", np.shape(realigned)) #### (210, 73472, 10)
+														 reference = target,
+														 n_iter=10) # >>> brainspace
+
+print("shape after realignment: ", np.shape(realigned)) #### (1, 73472, 10)
 
 # upload mni template 
 mni_affine = nb.load(mni_tmp).get_affine()
