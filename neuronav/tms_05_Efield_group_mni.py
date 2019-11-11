@@ -6,7 +6,7 @@ from nipype.interfaces import afni as afni
 # addressing individual tms files...
 indir    = '/data/pt_neuam005/simnibs_TMS/subjects/'
 outdir   = '/data/pt_neuam005/simnibs_TMS/subjects_group/'
-subdir   = 'simnibs_simulation_vertex/mni_volumes'
+subdir   = 'simnibs_simulation_mPFC/mni_volumes'
 suffix   = '_TMS_1-0001_MagVenture_MC_B70_nii_scalar_MNI_normE.nii.gz'
 lisfname = '/data/pt_neuam005/FSTIM_1_Think_preprocessed/subject_list_tms.txt'
 
@@ -47,17 +47,17 @@ maths = MultiImageMaths()
 maths.inputs.in_file       = img_list[0]
 maths.inputs.op_string     = operation
 maths.inputs.operand_files = img_list[1:]
-maths.inputs.out_file      = outdir + 'tms_vertex_mni_1mm.nii.gz'
+maths.inputs.out_file      = outdir + 'tms_mPFC_mni_1mm.nii.gz'
 maths.run()
 print(maths.cmdline)
 
 # resample nifti average to 2mm
 resample                   = afni.Resample()
-resample.inputs.in_file    = outdir + 'tms_vertex_mni_1mm.nii.gz'
+resample.inputs.in_file    = outdir + 'tms_mPFC_mni_1mm.nii.gz'
 resample.inputs.voxel_size = (2.0, 2.0, 2.0)
 resample.inputs.master     = masterfi
 resample.inputs.outputtype = 'NIFTI'
-resample.inputs.out_file   = outdir + 'tms_vertex_mni_2mm.nii.gz'
+resample.inputs.out_file   = outdir + 'tms_mPFC_mni_2mm.nii.gz'
 resample.run()
 print(resample.cmdline)
 
@@ -68,17 +68,17 @@ print('THRESHOLD', threshol)
 
 # binarize at the given threshold...
 binar                    = MathsCommand()
-binar.inputs.in_file     = outdir + 'tms_vertex_mni_2mm.nii.gz'
-binar.inputs.out_file    = outdir + 'tms_vertex_mni_2mm_thr_%i.nii.gz' % (threshol)
+binar.inputs.in_file     = outdir + 'tms_mPFC_mni_2mm.nii.gz'
+binar.inputs.out_file    = outdir + 'tms_mPFC_mni_2mm_thr_%i.nii.gz' % (threshol)
 binar.inputs.args   = '-thr %f -bin' % (threshol)
 binar.run()
 print(binar.cmdline)
 
 # get the intersection of two masks
 maths = MultiImageMaths()
-maths.inputs.in_file       = outdir + 'tms_vertex_mni_2mm_thr_%i.nii.gz' % (threshol)
+maths.inputs.in_file       = outdir + 'tms_mPFC_mni_2mm_thr_%i.nii.gz' % (threshol)
 maths.inputs.op_string     = '-mul %s'
 maths.inputs.operand_files = groupfi
-maths.inputs.out_file      = outdir + 'tms_vertex_mni_2mm_thr_%i_on_gradient_055.nii.gz' % (threshol)
+maths.inputs.out_file      = outdir + 'tms_mPFC_mni_2mm_thr_%i_on_gradient_055.nii.gz' % (threshol)
 maths.run()
 print(maths.cmdline)
